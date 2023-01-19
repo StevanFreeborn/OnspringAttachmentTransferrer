@@ -8,7 +8,7 @@ public static class Prompt
   {
     string apiKey = null;
 
-    while (Context.IsValidKey(apiKey) is true)
+    while (Context.IsValidKey(apiKey) is false)
     {
       Console.WriteLine("Please enter an api key for your source instance:");
       apiKey = Console.ReadLine();
