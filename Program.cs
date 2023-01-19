@@ -147,7 +147,7 @@ class Program
             continue;
           }
 
-          var fileIds = Processor.GetFileIdsFromAttachmentFieldData(attachmentFieldData);
+          var fileIds = Processor.GetFileIdsForInternalFilesFromAttachmentFieldData(attachmentFieldData);
 
           foreach(var fileId in fileIds)
           {

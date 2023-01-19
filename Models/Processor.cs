@@ -12,7 +12,7 @@ public static class Processor
     return mappings.GetValueOrDefault(sourceAttachmentFieldId);
   }
 
-  public static List<int> GetFileIdsFromAttachmentFieldData(RecordFieldValue attachmentFieldData)
+  public static List<int> GetFileIdsForInternalFilesFromAttachmentFieldData(RecordFieldValue attachmentFieldData)
   {
     switch (attachmentFieldData.Type)
     {
@@ -22,6 +22,7 @@ public static class Processor
       default:
         return attachmentFieldData
         .AsAttachmentList()
+        .Where(attachment => attachment.StorageLocation is FileStorageSite.Internal)
         .Select(attachment => attachment.FileId)
         .ToList();
     }
