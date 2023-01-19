@@ -96,7 +96,7 @@ public static class Prompt
 
     while (fieldId <= 0)
     {
-      Console.Write("Please enter the id for the field in the target whose value you want to match records on:");
+      Console.WriteLine("Please enter the id for the field in the target whose value you want to match records on:");
       var fieldIdInput = Console.ReadLine();
 
       if (Context.IsValidId(fieldIdInput, out int parsedId) is false)
