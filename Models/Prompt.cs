@@ -112,7 +112,7 @@ public static class Prompt
 
   public static Dictionary<int, int> GetAttachmentFieldMappings()
   {
-    Dictionary<int, int> fieldMappings = null;
+    Dictionary<int, int> fieldMappings = new Dictionary<int, int>();
 
     while (fieldMappings.Count < 1)
     {
