@@ -191,11 +191,12 @@ class Program
             }
 
             Log.Information(
-              "Source file {FileId} in {SourceAttachmentFieldId} for source record {SourceRecordId} in {SourceAppId} was successfully saved into field {TargetAttachmentField} for match record {MatchRecordId} in app {TargetAppId}",
+              "Source file {FileId} in {SourceAttachmentFieldId} for source record {SourceRecordId} in {SourceAppId} was successfully saved as file {TargetFileId} into field {TargetAttachmentField} for match record {MatchRecordId} in app {TargetAppId}",
               fileId,
               sourceAttachmentFieldId,
               sourceRecord.RecordId,
               sourceRecord.AppId,
+              saveFileResponse.Id,
               targetAttachmentField,
               matchRecordId,
               context.TargetAppId
