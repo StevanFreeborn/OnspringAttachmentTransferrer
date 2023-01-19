@@ -10,7 +10,7 @@ public static class Prompt
 
     while (Context.IsValidKey(apiKey) is true)
     {
-      Console.Write("Please enter an api key for your source instance: ");
+      Console.WriteLine("Please enter an api key for your source instance:");
       apiKey = Console.ReadLine();
     }
 
@@ -23,7 +23,7 @@ public static class Prompt
 
     while (Context.IsValidKey(apiKey) is false)
     {
-      Console.Write("Please enter an api key for your target instance: ");
+      Console.WriteLine("Please enter an api key for your target instance:");
       apiKey = Console.ReadLine();
     }
 
@@ -36,7 +36,7 @@ public static class Prompt
 
     while (appId <= 0)
     {
-      Console.Write("Please enter the id for your source app: ");
+      Console.WriteLine("Please enter the id for your source app:");
       var appIdInput = Console.ReadLine();
 
       if (Context.IsValidId(appIdInput, out int parsedId) is false)
@@ -56,7 +56,7 @@ public static class Prompt
 
     while (appId <= 0)
     {
-      Console.Write("Please enter the id for your target app: ");
+      Console.WriteLine("Please enter the id for your target app:");
       var appIdInput = Console.ReadLine();
 
       if (Context.IsValidId(appIdInput, out int parsedId) is false)
@@ -76,7 +76,7 @@ public static class Prompt
 
     while (fieldId <= 0)
     {
-      Console.Write("Please enter the id for the field in the source whose value you want to match records on: ");
+      Console.WriteLine("Please enter the id for the field in the source whose value you want to match records on:");
       var fieldIdInput = Console.ReadLine();
 
       if (Context.IsValidId(fieldIdInput, out int parsedId) is false)
@@ -96,7 +96,7 @@ public static class Prompt
 
     while (fieldId <= 0)
     {
-      Console.Write("Please enter the id for the field in the target whose value you want to match records on: ");
+      Console.Write("Please enter the id for the field in the target whose value you want to match records on:");
       var fieldIdInput = Console.ReadLine();
 
       if (Context.IsValidId(fieldIdInput, out int parsedId) is false)
@@ -116,7 +116,7 @@ public static class Prompt
 
     while (fieldMappings.Count < 1)
     {
-      Console.Write("Please enter your attachment field id mappings (i.e. 0001|1000,0002|2000): ");
+      Console.WriteLine("Please enter your attachment field id mappings (i.e. 0001|1000,0002|2000):");
       var fieldMappingInput = Console.ReadLine();
 
       if (Context.TryParseMappings(fieldMappingInput, out var mappings) is true)
