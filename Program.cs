@@ -1,26 +1,13 @@
 ﻿using Serilog;
-using Serilog.Events;
-using Serilog.Formatting.Compact;
-using OnspringAttachmentTransferrer.Helpers;
 using Onspring.API.SDK.Models;
 using OnspringAttachmentTransferrer.Services;
-using Serilog.Sinks.SystemConsole.Themes;
 
 class Program
 {
   static async Task<int> Main(string[] args)
   {
-    var outputDirectory = FileHelper.GetOutputDirectory();
-    var logPath = Path.Combine(outputDirectory, "log.json");
-
-    Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Debug()
-    .WriteTo.File(new RenderedCompactJsonFormatter(), logPath)
-    .WriteTo.Console(
-      restrictedToMinimumLevel: LogEventLevel.Information, 
-      theme: AnsiConsoleTheme.Code)
-    .CreateLogger();
-
+    var logPath = LogFactory.GetLogPath();
+    Log.Logger = LogFactory.GetLogger(logPath);
     var context = Processor.GetContextFromFileOrUser(args[0]);
 
     if (context is null)

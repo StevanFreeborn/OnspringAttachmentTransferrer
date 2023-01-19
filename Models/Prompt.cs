@@ -2,7 +2,7 @@ using OnspringAttachmentTransferrer.Models;
 
 namespace OnspringAttachmentTransferrer.Helpers;
 
-public static class PromptHelper
+public static class Prompt
 {
   public static string GetSourceApiKey()
   {

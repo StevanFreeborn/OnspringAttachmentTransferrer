@@ -100,13 +100,13 @@ public static class Processor
       return contextFromConfig;
     }
 
-    var sourceInstanceKey = PromptHelper.GetSourceApiKey();
-    var targetInstanceKey = PromptHelper.GetTargetApiKey();
-    var sourceAppId = PromptHelper.GetSourceAppId();
-    var targetAppId = PromptHelper.GetTargetAppId();
-    var sourceMatchField = PromptHelper.GetSourceMatchFieldId();
-    var targetMatchField = PromptHelper.GetTargetMatchFieldId();
-    var attachmentFieldMappings = PromptHelper.GetAttachmentFieldMappings();
+    var sourceInstanceKey = Prompt.GetSourceApiKey();
+    var targetInstanceKey = Prompt.GetTargetApiKey();
+    var sourceAppId = Prompt.GetSourceAppId();
+    var targetAppId = Prompt.GetTargetAppId();
+    var sourceMatchField = Prompt.GetSourceMatchFieldId();
+    var targetMatchField = Prompt.GetTargetMatchFieldId();
+    var attachmentFieldMappings = Prompt.GetAttachmentFieldMappings();
 
     return new Context(
       sourceInstanceKey,
