@@ -55,7 +55,7 @@ class Program
     Log.Information("Onspring Attachment Transferrer Started");
 
     var totalPages = 1;
-    var pagingRequest = new PagingRequest(1, 1);
+    var pagingRequest = new PagingRequest(1, 50);
     var currentPage = pagingRequest.PageNumber;
 
     do
