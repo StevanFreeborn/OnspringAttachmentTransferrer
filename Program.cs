@@ -19,7 +19,7 @@ class Program
       getDefaultValue: () => LogEventLevel.Information
     );
 
-    var rootCommand = new RootCommand("A app that will transferer attachments between two Onspring apps.");
+    var rootCommand = new RootCommand("An app that will transferer attachments between two Onspring apps.");
     rootCommand.AddOption(fileOption);
     rootCommand.AddOption(logLevelOption);
     rootCommand.SetHandler(async (filePath, logLevel) => 
