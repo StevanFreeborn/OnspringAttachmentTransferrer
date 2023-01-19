@@ -13,13 +13,13 @@ public static class LogFactory
     return Path.Combine(currentDirectory, outputDirectory, "log.json");
   }
 
-  public static Logger GetLogger(string logPath)
+  public static Logger GetLogger(string logPath, LogEventLevel logLevel)
   {
     return new LoggerConfiguration()
     .MinimumLevel.Debug()
     .WriteTo.File(new RenderedCompactJsonFormatter(), logPath)
     .WriteTo.Console(
-      restrictedToMinimumLevel: LogEventLevel.Information, 
+      restrictedToMinimumLevel: logLevel, 
       theme: AnsiConsoleTheme.Code
     )
     .CreateLogger();

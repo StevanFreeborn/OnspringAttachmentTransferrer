@@ -221,7 +221,7 @@ public class OnspringService
       }
 
       Log.Debug(
-        "Successfully saved file named {FileName} with id ${FileId} in field {FieldId} for match record {RecordId}.",
+        "Successfully saved file named {FileName} with id {FileId} in field {FieldId} for match record {RecordId}.",
         fileInfo.Name,
         response.Value.Id,
         fieldId,

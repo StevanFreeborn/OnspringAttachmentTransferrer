@@ -1,31 +1,58 @@
 ﻿using Serilog;
 using Onspring.API.SDK.Models;
 using OnspringAttachmentTransferrer.Services;
+using System.CommandLine;
+using Serilog.Events;
 
 class Program
 {
   static async Task<int> Main(string[] args)
   {
+    var fileOption = new Option<string>(
+      aliases: new string[] { "--config", "-c" },
+      description: "The path to the file that specifies configuration for the transferrer."
+    );
+
+    var logLevelOption = new Option<LogEventLevel>(
+      aliases: new string[] { "--log", "-l" },
+      description: "Set the minimum level of event that will be logged to the console.",
+      getDefaultValue: () => LogEventLevel.Information
+    );
+
+    var rootCommand = new RootCommand("A app that will transferer attachments between two Onspring apps.");
+    rootCommand.AddOption(fileOption);
+    rootCommand.AddOption(logLevelOption);
+    rootCommand.SetHandler(async (filePath, logLevel) => 
+    {
+      await Run(filePath, logLevel);
+    }, fileOption, logLevelOption);
+
+    return await rootCommand.InvokeAsync(args);
+  }
+
+  static async Task<int> Run(string filePath, LogEventLevel logLevel)
+  {
     var logPath = LogFactory.GetLogPath();
-    Log.Logger = LogFactory.GetLogger(logPath);
-    var context = Processor.GetContextFromFileOrUser(args[0]);
+    Log.Logger = LogFactory.GetLogger(logPath, logLevel);
+    var context = Processor.GetContextFromFileOrUser(filePath);
 
     if (context is null)
     {
-      Log.Error("Unable to get context from file or user input.");
+      Log.Fatal("Unable to get context from file or user input.");
       return 1;
     }
 
-    Log.Information("Onspring Attachment Transferrer Started");
     var onspringService = new OnspringService();
     var sourceMatchField = await onspringService.GetField(context.SourceInstanceKey, context.SourceMatchFieldId);
     var targetMatchField = await onspringService.GetField(context.TargetInstanceKey, context.TargetMatchFieldId);
 
     if (Processor.ValidateMatchFields(sourceMatchField, targetMatchField) is false)
     {
-      Log.Error("Invalid match fields");
+      Log.Fatal("Invalid match fields");
       return 2;
     }
+    
+    Log.Information("Onspring Attachment Transferrer Started");
 
     var totalPages = 1;
     var pagingRequest = new PagingRequest(1, 1);
@@ -34,7 +61,7 @@ class Program
     do
     {
       Log.Information(
-        "Fetching page {CurrentPage} of records for {SourceApp}",
+        "Fetching Page {CurrentPage} of records for Source App {SourceApp}",
         currentPage,
         context.SourceAppId
       );
@@ -48,8 +75,8 @@ class Program
 
       if (sourceRecords is null)
       {
-        Log.Information(
-        "Unable to fetch page {CurrentPage} of records for {SourceApp}",
+        Log.Warning(
+        "Unable to fetch Page {CurrentPage} of records for Source App {SourceApp}",
         currentPage,
         context.SourceAppId
       );
@@ -59,7 +86,7 @@ class Program
       totalPages = sourceRecords.TotalPages;
 
       Log.Information(
-        "Begin processing page {CurrentPage} of records for {SourceApp}",
+        "Begin processing Page {CurrentPage} of records for Source App {SourceApp}",
         currentPage,
         context.SourceAppId
       );
@@ -67,7 +94,7 @@ class Program
       foreach(var sourceRecord in sourceRecords.Items)
       {
         Log.Information(
-          "Begin processing source record {RecordId} in app {AppId}", 
+          "Begin processing Source Record {RecordId} in Source App {AppId}", 
           sourceRecord.RecordId, 
           sourceRecord.AppId
         );
@@ -76,8 +103,8 @@ class Program
         
         if (matchRecordValue is null)
         {
-          Log.Information(
-            "No identifier value found for source record {RecordId} in {AppId}.", 
+          Log.Warning(
+            "No identifier value found for Source Record {RecordId} in Source App {AppId}.", 
             sourceRecord.RecordId, 
             sourceRecord.AppId
           );
@@ -95,8 +122,9 @@ class Program
 
         if (matchRecordId.HasValue is false)
         {
-          Log.Information(
-            "No match record could be found in App {TargetAppId} for {RecordId} in {SourceAppId}.",
+          Log.Warning(
+            "No match record ({MatchValue}) could be found in Target App {TargetAppId} for Source Record {RecordId} in Source App {SourceAppId}.",
+            matchValueString,
             context.TargetAppId,
             sourceRecord.RecordId,
             sourceRecord.AppId
@@ -110,8 +138,8 @@ class Program
 
           if (attachmentFieldData is null)
           {
-            Log.Information(
-              "No field data found in field {SourceAttachmentFieldId} for source record {SourceRecordId} in {SourceAppId}.",
+            Log.Warning(
+              "No field data found in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId}.",
               sourceAttachmentFieldId,
               sourceRecord.RecordId,
               sourceRecord.AppId
@@ -132,8 +160,8 @@ class Program
             
             if (sourceFileInfo is null)
             {
-              Log.Information(
-                "No file info could be found for file {FileId} in field {SourceAttachmentId} for source record {SourceRecordId} in {SourceAppId}.",
+              Log.Warning(
+                "No file info could be found for File {FileId} in Source Attachment Field {SourceAttachmentId} for Source Record {SourceRecordId} in Source App {SourceAppId}.",
                 fileId,
                 sourceAttachmentFieldId,
                 sourceRecord.RecordId,
@@ -151,8 +179,8 @@ class Program
 
             if (sourceFile is null)
             {
-              Log.Information(
-                "No file could be found for file {FileId} in field {SourceAttachmentFieldId} for source record {SourceRecordId} in {SourceAppId}.",
+              Log.Warning(
+                "No file could be found for File {FileId} in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId}.",
                 fileId,
                 sourceAttachmentFieldId,
                 sourceRecord.RecordId,
@@ -176,8 +204,8 @@ class Program
 
             if (saveFileResponse is null)
             {
-              Log.Information(
-                "Source file {FileId} in {SourceAttachmentFieldId} for source record {SourceRecordId} in {SourceAppId} could not be saved into field {TargetAttachmentField} for match record {MatchRecordId} in app {TargetAppId}",
+              Log.Warning(
+                "Source File {FileId} in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId} could not be saved into Target Attachment Field {TargetAttachmentField} for Match Record {MatchRecordId} in Target App {TargetAppId}",
                 fileId,
                 sourceAttachmentFieldId,
                 sourceRecord.RecordId,
@@ -191,7 +219,7 @@ class Program
             }
 
             Log.Information(
-              "Source file {FileId} in {SourceAttachmentFieldId} for source record {SourceRecordId} in {SourceAppId} was successfully saved as file {TargetFileId} into field {TargetAttachmentField} for match record {MatchRecordId} in app {TargetAppId}",
+              "Source File {FileId} in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId} was successfully saved as File {TargetFileId} into Target Attachment Field {TargetAttachmentField} for Match Record {MatchRecordId} in Target App {TargetAppId}",
               fileId,
               sourceAttachmentFieldId,
               sourceRecord.RecordId,
@@ -205,14 +233,14 @@ class Program
         }
 
         Log.Information(
-          "Finished processing source record {RecordId} in app {AppId}", 
+          "Finished processing Source Record {RecordId} in Source App {AppId}", 
           sourceRecord.RecordId, 
           sourceRecord.AppId
         );
       }
 
       Log.Information(
-        "Finished processing page {CurrentPage} of records for {SourceApp}",
+        "Finished processing Page {CurrentPage} of records for Source App {SourceApp}",
         currentPage,
         context.SourceAppId
       );
@@ -222,7 +250,7 @@ class Program
     } while (currentPage <= totalPages);
 
     Log.Information("Onspring Bulk Attachment Transferrer Finished");
-    Log.Information("Find a completed log here: {LogPath}", logPath);
+    Log.Information("Find a log of the completed run here: {LogPath}", logPath);
     Log.CloseAndFlush();
     Console.WriteLine("Press any key to close...");
     Console.ReadLine();
