@@ -23,7 +23,7 @@ class Program
       theme: AnsiConsoleTheme.Code)
     .CreateLogger();
 
-    var context = PromptHelper.GetContextFromFileOrUser(args[0]);
+    var context = Processor.GetContextFromFileOrUser(args[0]);
 
     if (context is null)
     {
@@ -33,15 +33,10 @@ class Program
 
     Log.Information("Onspring Attachment Transferrer Started");
     var onspringService = new OnspringService();
-    var sourceMatchField = await onspringService.GetField(context.SourceInstanceKey, context.SourceMatchField);
-    var targetMatchField = await onspringService.GetField(context.TargetInstanceKey, context.TargetMatchField);
+    var sourceMatchField = await onspringService.GetField(context.SourceInstanceKey, context.SourceMatchFieldId);
+    var targetMatchField = await onspringService.GetField(context.TargetInstanceKey, context.TargetMatchFieldId);
 
-    if (
-      sourceMatchField is null ||
-      Context.IsValidMatchFieldType(sourceMatchField) is false ||
-      targetMatchField is null ||
-      Context.IsValidMatchFieldType(targetMatchField) is false
-    )
+    if (Processor.ValidateMatchFields(sourceMatchField, targetMatchField) is false)
     {
       Log.Error("Invalid match fields");
       return 2;
@@ -92,9 +87,7 @@ class Program
           sourceRecord.AppId
         );
 
-        var matchRecordValue = sourceRecord
-        .FieldData
-        .FirstOrDefault(fd => fd.FieldId == context.SourceMatchField);
+        var matchRecordValue = Processor.GetRecordFieldValue(sourceRecord, context.SourceMatchFieldId);
         
         if (matchRecordValue is null)
         {
@@ -106,11 +99,12 @@ class Program
           continue;
         }
 
-        var matchValueString = Context.GetMatchValueAsString(matchRecordValue);
+        var matchValueString = Processor.GetMatchValueAsString(matchRecordValue);
+        
         var matchRecordId = await onspringService.GetMatchRecordId(
           context.TargetInstanceKey, 
           context.TargetAppId, 
-          context.TargetMatchField, 
+          context.TargetMatchFieldId, 
           matchValueString
         );
 
@@ -127,11 +121,9 @@ class Program
 
         foreach(var sourceAttachmentFieldId in context.SourceAttachmentFieldIds)
         {
-          var fieldData = sourceRecord
-          .FieldData
-          .FirstOrDefault(fd => fd.FieldId == sourceAttachmentFieldId);
+          var attachmentFieldData = Processor.GetRecordFieldValue(sourceRecord, sourceAttachmentFieldId);
 
-          if (fieldData is null)
+          if (attachmentFieldData is null)
           {
             Log.Information(
               "No field data found in field {SourceAttachmentFieldId} for source record {SourceRecordId} in {SourceAppId}.",
@@ -142,21 +134,7 @@ class Program
             continue;
           }
 
-          List<int> fileIds;
-
-          switch(fieldData.Type)
-          {
-            case ResultValueType.FileList:
-              fileIds = fieldData.AsFileList();
-              break;
-            case ResultValueType.AttachmentList:
-            default:
-              fileIds = fieldData
-              .AsAttachmentList()
-              .Select(attachment => attachment.FileId)
-              .ToList();
-              break;
-          }
+          var fileIds = Processor.GetFileIdsFromAttachmentFieldData(attachmentFieldData);
 
           foreach(var fileId in fileIds)
           {
@@ -198,8 +176,18 @@ class Program
               continue;
             }
 
-            var targetAttachmentField = context.AttachmentFieldMappings.GetValueOrDefault(sourceAttachmentFieldId);
-            var saveFileResponse = await onspringService.AddSourceFileToMatchRecord(context.TargetInstanceKey, matchRecordId, targetAttachmentField, sourceFileInfo, sourceFile);
+            var targetAttachmentField = Processor.GetTargetAttachmentField(
+              context.AttachmentFieldMappings, 
+              sourceAttachmentFieldId
+            );
+            
+            var saveFileResponse = await onspringService.AddSourceFileToMatchRecord(
+              context.TargetInstanceKey, 
+              matchRecordId, 
+              targetAttachmentField, 
+              sourceFileInfo, 
+              sourceFile
+            );
 
             if (saveFileResponse is null)
             {

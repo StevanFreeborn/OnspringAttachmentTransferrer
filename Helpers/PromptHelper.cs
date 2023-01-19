@@ -6,44 +6,7 @@ namespace OnspringAttachmentTransferrer.Helpers;
 
 public static class PromptHelper
 {
-  public static Context GetContextFromFileOrUser(string filePath)
-  {
-    if (filePath is not null)
-    {
-
-      var configuration = new ConfigurationBuilder()
-      .AddJsonFile(filePath, optional: true, reloadOnChange: true)
-      .Build();
-
-      if (Context.TryParseConfigToContext(configuration, out var contextFromConfig) is false)
-      {
-        Log.Error("Configuration is not valid. Please correct and try again.");
-        return null;
-      }
-
-      return contextFromConfig;
-    }
-
-    var sourceInstanceKey = GetSourceApiKey();
-    var targetInstanceKey = GetTargetApiKey();
-    var sourceAppId = GetSourceAppId();
-    var targetAppId = GetTargetAppId();
-    var sourceMatchField = GetSourceMatchFieldId();
-    var targetMatchField = GetTargetMatchFieldId();
-    var attachmentFieldMappings = GetAttachmentFieldMappings();
-
-    return new Context(
-      sourceInstanceKey,
-      targetInstanceKey,
-      sourceAppId,
-      targetAppId,
-      sourceMatchField,
-      targetMatchField,
-      attachmentFieldMappings
-    );
-  }
-
-  private static string GetSourceApiKey()
+  public static string GetSourceApiKey()
   {
     string apiKey = null;
 
@@ -56,7 +19,7 @@ public static class PromptHelper
     return apiKey;
   }
 
-  private static string GetTargetApiKey()
+  public static string GetTargetApiKey()
   {
     string apiKey = null;
 
@@ -69,7 +32,7 @@ public static class PromptHelper
     return apiKey;
   }
 
-  private static int GetSourceAppId()
+  public static int GetSourceAppId()
   {
     var appId = 0;
 
@@ -89,7 +52,7 @@ public static class PromptHelper
     return appId;
   }
 
-  private static int GetTargetAppId()
+  public static int GetTargetAppId()
   {
     var appId = 0;
 
@@ -109,7 +72,7 @@ public static class PromptHelper
     return appId;
   }
 
-  private static int GetSourceMatchFieldId()
+  public static int GetSourceMatchFieldId()
   {
     var fieldId = 0;
 
@@ -129,7 +92,7 @@ public static class PromptHelper
     return fieldId;
   }
 
-  private static int GetTargetMatchFieldId()
+  public static int GetTargetMatchFieldId()
   {
     var fieldId = 0;
 
@@ -149,7 +112,7 @@ public static class PromptHelper
     return fieldId;
   }
 
-  private static Dictionary<int, int> GetAttachmentFieldMappings()
+  public static Dictionary<int, int> GetAttachmentFieldMappings()
   {
     Dictionary<int, int> fieldMappings = null;
 

@@ -13,8 +13,8 @@ public class Context
     TargetInstanceKey = targetInstanceKey;
     SourceAppId = sourceAppId;
     TargetAppId = targetAppId;
-    SourceMatchField = sourceMatchField;
-    TargetMatchField = targetMatchField;
+    SourceMatchFieldId = sourceMatchField;
+    TargetMatchFieldId = targetMatchField;
     AttachmentFieldMappings = attachmentFieldMappings;
   }
 
@@ -22,8 +22,8 @@ public class Context
   public string TargetInstanceKey { get; set; }
   public int SourceAppId { get; set; }
   public int TargetAppId { get; set; }
-  public int SourceMatchField { get; set; }
-  public int TargetMatchField { get; set; }
+  public int SourceMatchFieldId { get; set; }
+  public int TargetMatchFieldId { get; set; }
   public Dictionary<int,int> AttachmentFieldMappings { get; set; }
   public List<int> SourceAttachmentFieldIds => GetSourceAttachmentFields();
   public List<int> SourceFieldIds => GetSourceFieldIds();
@@ -37,14 +37,14 @@ public class Context
   private List<int> GetTargetFieldIds()
   {
     var targetFieldIds = AttachmentFieldMappings.Values.ToList();
-    targetFieldIds.Add(TargetMatchField);
+    targetFieldIds.Add(TargetMatchFieldId);
     return targetFieldIds;
   }
 
   private List<int> GetSourceFieldIds()
   {
     var sourceFieldIds = AttachmentFieldMappings.Keys.ToList();
-    sourceFieldIds.Add(SourceMatchField);
+    sourceFieldIds.Add(SourceMatchFieldId);
     return sourceFieldIds;
   }
 
@@ -190,39 +190,5 @@ public class Context
     }
 
     return true;
-  }
-
-  public static string GetMatchValueAsString(RecordFieldValue value)
-  {
-    switch (value.Type)
-    {
-        case ResultValueType.String:
-            return value.AsString();
-        case ResultValueType.Integer:
-            return $"{value.AsNullableInteger()}";
-        case ResultValueType.Decimal:
-            return $"{value.AsNullableDecimal()}";
-        case ResultValueType.Date:
-            return $"{value.AsNullableDateTime()}";
-        case ResultValueType.TimeSpan:
-            var data = value.AsTimeSpanData();
-            return $"Quantity: {data.Quantity}, Increment: {data.Increment}, Recurrence: {data.Recurrence}, EndByDate: {data.EndByDate}, EndAfterOccurrences: {data.EndAfterOccurrences}";
-        case ResultValueType.Guid:
-            return $"{value.AsNullableGuid()}";
-        case ResultValueType.StringList:
-            return string.Join(", ", value.AsStringList());
-        case ResultValueType.IntegerList:
-            return string.Join(", ", value.AsIntegerList());
-        case ResultValueType.GuidList:
-            return string.Join(", ", value.AsGuidList());
-        case ResultValueType.AttachmentList:
-            var attachmentFiles = value.AsAttachmentList().Select(f => $"FileId: {f.FileId}, FileName: {f.FileName}, Notes: {f.Notes}");
-            return string.Join(", ", attachmentFiles);
-        case ResultValueType.ScoringGroupList:
-            var scoringGroups = value.AsScoringGroupList().Select(g => $"ListValueId: {g.ListValueId}, Name: {g.Name}, Score: {g.Score}, MaximumScore: {g.MaximumScore}");
-            return string.Join(", ", scoringGroups);
-        default:
-            return $"Unsupported ResultValueType: {value.Type}";
-    }
   }
 }
