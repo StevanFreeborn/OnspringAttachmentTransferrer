@@ -4,8 +4,6 @@ using Serilog.Formatting.Compact;
 using OnspringAttachmentTransferrer.Helpers;
 using Onspring.API.SDK.Models;
 using OnspringAttachmentTransferrer.Services;
-using OnspringAttachmentTransferrer.Models;
-using Onspring.API.SDK.Enums;
 using Serilog.Sinks.SystemConsole.Themes;
 
 class Program
@@ -180,7 +178,7 @@ class Program
               context.AttachmentFieldMappings, 
               sourceAttachmentFieldId
             );
-            
+
             var saveFileResponse = await onspringService.AddSourceFileToMatchRecord(
               context.TargetInstanceKey, 
               matchRecordId, 

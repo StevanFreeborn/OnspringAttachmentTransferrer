@@ -1,6 +1,4 @@
-using Serilog;
 using OnspringAttachmentTransferrer.Models;
-using Microsoft.Extensions.Configuration;
 
 namespace OnspringAttachmentTransferrer.Helpers;
 
