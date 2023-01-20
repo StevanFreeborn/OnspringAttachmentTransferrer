@@ -19,18 +19,24 @@ class Program
       getDefaultValue: () => LogEventLevel.Information
     );
 
+    var recordLimitOption = new Option<int?>(
+      aliases: new string[] { "--recordLimit", "-r" },
+      description: "Set a limit to the number of records that will be processed."
+    );
+
     var rootCommand = new RootCommand("An app that will transfer attachments between two Onspring apps.");
     rootCommand.AddOption(fileOption);
     rootCommand.AddOption(logLevelOption);
-    rootCommand.SetHandler(async (filePath, logLevel) => 
+    rootCommand.AddOption(recordLimitOption);
+    rootCommand.SetHandler(async (filePath, logLevel, recordLimit) => 
     {
-      await Run(filePath, logLevel);
-    }, fileOption, logLevelOption);
+      await Run(filePath, logLevel, recordLimit);
+    }, fileOption, logLevelOption, recordLimitOption);
 
     return await rootCommand.InvokeAsync(args);
   }
 
-  static async Task<int> Run(string filePath, LogEventLevel logLevel)
+  static async Task<int> Run(string filePath, LogEventLevel logLevel, int? recordLimit)
   {
     var logPath = LogFactory.GetLogPath();
     Log.Logger = LogFactory.GetLogger(logPath, logLevel);
@@ -57,6 +63,7 @@ class Program
     var totalPages = 1;
     var pagingRequest = new PagingRequest(1, 50);
     var currentPage = pagingRequest.PageNumber;
+    var countOfProcessedRecords = 0;
 
     do
     {
@@ -93,6 +100,13 @@ class Program
 
       foreach(var sourceRecord in sourceRecords.Items)
       {
+        if (recordLimit.HasValue && countOfProcessedRecords >= recordLimit)
+        {
+          Log.Warning("Processed record limit of {RecordLimit} reached.", recordLimit.Value);
+          goto End;
+        }
+        countOfProcessedRecords++;
+
         Log.Information(
           "Begin processing Source Record {RecordId} in Source App {AppId}", 
           sourceRecord.RecordId, 
@@ -249,7 +263,9 @@ class Program
       currentPage = pagingRequest.PageNumber; 
     } while (currentPage <= totalPages);
 
-    Log.Information("Onspring Bulk Attachment Transferrer Finished");
+    End:
+
+    Log.Information("Onspring Attachment Transferrer Finished");
     Log.Information("Find a log of the completed run here: {LogPath}", logPath);
     Log.CloseAndFlush();
     Console.WriteLine("Press any key to close...");
