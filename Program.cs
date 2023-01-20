@@ -32,7 +32,7 @@ class Program
 
     var parallelOption = new Option<bool>(
       aliases: new string[] { "--parallel", "-p" },
-      description: "Process each record in paralle.",
+      description: "Process each record in parallel.",
       getDefaultValue: () => false
     );
 
