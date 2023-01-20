@@ -1,8 +1,8 @@
 ﻿using Serilog;
 using Onspring.API.SDK.Models;
-using OnspringAttachmentTransferrer.Services;
 using System.CommandLine;
 using Serilog.Events;
+using System.Diagnostics;
 
 class Program
 {
@@ -19,27 +19,41 @@ class Program
       getDefaultValue: () => LogEventLevel.Information
     );
 
-    var recordLimitOption = new Option<int?>(
-      aliases: new string[] { "--recordLimit", "-r" },
-      description: "Set a limit to the number of records that will be processed."
+    var pageSizeOption = new Option<int>(
+      aliases: new string[] { "--pageSize", "-ps" },
+      description: "Set the size of each page of records processed.",
+      getDefaultValue: () => 50
+    );
+
+    var pageNumberOption = new Option<int?>(
+      aliases: new string[] { "--pageNumber", "-pn" },
+      description: "Set a limit to the number of pages of records processed."
+    );
+
+    var parallelOption = new Option<bool>(
+      aliases: new string[] { "--parallel", "-p" },
+      description: "Process each record in paralle.",
+      getDefaultValue: () => false
     );
 
     var rootCommand = new RootCommand("An app that will transfer attachments between two Onspring apps.");
     rootCommand.AddOption(fileOption);
     rootCommand.AddOption(logLevelOption);
-    rootCommand.AddOption(recordLimitOption);
-    rootCommand.SetHandler(async (filePath, logLevel, recordLimit) => 
+    rootCommand.AddOption(pageSizeOption);
+    rootCommand.AddOption(pageNumberOption);
+    rootCommand.AddOption(parallelOption);
+    rootCommand.SetHandler(async (filePath, logLevel, pageSize, pageNumber, isParallel) => 
     {
-      await Run(filePath, logLevel, recordLimit);
-    }, fileOption, logLevelOption, recordLimitOption);
+      await Run(filePath, logLevel, pageSize, pageNumber, isParallel);
+    }, fileOption, logLevelOption, pageSizeOption, pageNumberOption, parallelOption);
 
     return await rootCommand.InvokeAsync(args);
   }
 
-  static async Task<int> Run(string filePath, LogEventLevel logLevel, int? recordLimit)
+  static async Task<int> Run(string filePath, LogEventLevel logLevel, int pageSize, int? pageNumberLimit, bool isParallel)
   {
     var logPath = LogFactory.GetLogPath();
-    Log.Logger = LogFactory.GetLogger(logPath, logLevel);
+    Log.Logger = LogFactory.CreateLogger(logPath, logLevel);
     var context = Processor.GetContextFromFileOrUser(filePath);
 
     if (context is null)
@@ -48,42 +62,35 @@ class Program
       return 1;
     }
 
-    var onspringService = new OnspringService();
-    var sourceMatchField = await onspringService.GetField(context.SourceInstanceKey, context.SourceMatchFieldId);
-    var targetMatchField = await onspringService.GetField(context.TargetInstanceKey, context.TargetMatchFieldId);
+    var processor = new Processor(context);
 
-    if (Processor.ValidateMatchFields(sourceMatchField, targetMatchField) is false)
+    if (await processor.ValidateMatchFields() is false)
     {
-      Log.Fatal("Invalid match fields");
+      Log.Fatal("Invalid match fields.");
       return 2;
     }
     
     Log.Information("Onspring Attachment Transferrer Started");
 
+    var stopWatch = new Stopwatch();
     var totalPages = 1;
-    var pagingRequest = new PagingRequest(1, 50);
+    var pagingRequest = new PagingRequest(1, pageSize);
     var currentPage = pagingRequest.PageNumber;
-    var countOfProcessedRecords = 0;
 
     do
     {
       Log.Information(
-        "Fetching Page {CurrentPage} of records for Source App {SourceApp}",
+        "Fetching Page {CurrentPage} of records for Source App {SourceApp}.",
         currentPage,
         context.SourceAppId
       );
 
-      var sourceRecords = await onspringService.GetAPageOfRecords(
-        context.SourceInstanceKey, 
-        context.SourceAppId, 
-        context.SourceFieldIds, 
-        pagingRequest
-      );
+      var sourceRecords = await processor.GetAPageOfRecords(pagingRequest);
 
       if (sourceRecords is null)
       {
         Log.Warning(
-        "Unable to fetch Page {CurrentPage} of records for Source App {SourceApp}",
+        "Unable to fetch Page {CurrentPage} of records for Source App {SourceApp}.",
         currentPage,
         context.SourceAppId
       );
@@ -93,182 +100,46 @@ class Program
       totalPages = sourceRecords.TotalPages;
 
       Log.Information(
-        "Begin processing Page {CurrentPage} of records for Source App {SourceApp}",
+        "Begin processing Page {CurrentPage} of records for Source App {SourceApp}.",
         currentPage,
         context.SourceAppId
       );
 
-      foreach(var sourceRecord in sourceRecords.Items)
+      stopWatch.Start();
+
+      if (isParallel is true)
       {
-        if (recordLimit.HasValue && countOfProcessedRecords >= recordLimit)
+        await Parallel.ForEachAsync(sourceRecords.Items, async (sourceRecord, token) => 
         {
-          Log.Warning("Processed record limit of {RecordLimit} reached.", recordLimit.Value);
-          goto End;
-        }
-        countOfProcessedRecords++;
-
-        Log.Information(
-          "Begin processing Source Record {RecordId} in Source App {AppId}", 
-          sourceRecord.RecordId, 
-          sourceRecord.AppId
-        );
-
-        var matchRecordValue = Processor.GetRecordFieldValue(sourceRecord, context.SourceMatchFieldId);
-        
-        if (matchRecordValue is null)
+          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord, isParallel);
+        });
+      }
+      else
+      {
+        foreach (var sourceRecord in sourceRecords.Items)
         {
-          Log.Warning(
-            "No identifier value found for Source Record {RecordId} in Source App {AppId}.", 
-            sourceRecord.RecordId, 
-            sourceRecord.AppId
-          );
-          continue;
+          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord, isParallel);
         }
-
-        var matchValueString = Processor.GetMatchValueAsString(matchRecordValue);
-        
-        var matchRecordId = await onspringService.GetMatchRecordId(
-          context.TargetInstanceKey, 
-          context.TargetAppId, 
-          context.TargetMatchFieldId, 
-          matchValueString
-        );
-
-        if (matchRecordId.HasValue is false)
-        {
-          Log.Warning(
-            "No match record ({MatchValue}) could be found in Target App {TargetAppId} for Source Record {RecordId} in Source App {SourceAppId}.",
-            matchValueString,
-            context.TargetAppId,
-            sourceRecord.RecordId,
-            sourceRecord.AppId
-          );
-          continue;
-        }
-
-        foreach(var sourceAttachmentFieldId in context.SourceAttachmentFieldIds)
-        {
-          var attachmentFieldData = Processor.GetRecordFieldValue(sourceRecord, sourceAttachmentFieldId);
-
-          if (attachmentFieldData is null)
-          {
-            Log.Warning(
-              "No field data found in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId}.",
-              sourceAttachmentFieldId,
-              sourceRecord.RecordId,
-              sourceRecord.AppId
-            );
-            continue;
-          }
-
-          var fileIds = Processor.GetFileIdsForInternalFilesFromAttachmentFieldData(attachmentFieldData);
-
-          foreach(var fileId in fileIds)
-          {
-            var sourceFileInfo = await onspringService.GetFileInfo(
-              context.SourceInstanceKey, 
-              sourceRecord.RecordId, 
-              sourceAttachmentFieldId,  
-              fileId
-            );
-            
-            if (sourceFileInfo is null)
-            {
-              Log.Warning(
-                "No file info could be found for File {FileId} in Source Attachment Field {SourceAttachmentId} for Source Record {SourceRecordId} in Source App {SourceAppId}.",
-                fileId,
-                sourceAttachmentFieldId,
-                sourceRecord.RecordId,
-                sourceRecord.AppId
-              );
-              continue;
-            }
-
-            var sourceFile = await onspringService.GetFile(
-              context.SourceInstanceKey, 
-              sourceRecord.RecordId, 
-              sourceAttachmentFieldId,  
-              fileId
-            );
-
-            if (sourceFile is null)
-            {
-              Log.Warning(
-                "No file could be found for File {FileId} in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId}.",
-                fileId,
-                sourceAttachmentFieldId,
-                sourceRecord.RecordId,
-                sourceRecord.AppId
-              );
-              continue;
-            }
-
-            var targetAttachmentField = Processor.GetTargetAttachmentField(
-              context.AttachmentFieldMappings, 
-              sourceAttachmentFieldId
-            );
-
-            var saveFileResponse = await onspringService.AddSourceFileToMatchRecord(
-              context.TargetInstanceKey, 
-              matchRecordId, 
-              targetAttachmentField, 
-              sourceFileInfo, 
-              sourceFile
-            );
-
-            if (saveFileResponse is null)
-            {
-              Log.Warning(
-                "Source File {FileId} in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId} could not be saved into Target Attachment Field {TargetAttachmentField} for Match Record {MatchRecordId} in Target App {TargetAppId}",
-                fileId,
-                sourceAttachmentFieldId,
-                sourceRecord.RecordId,
-                sourceRecord.AppId,
-                targetAttachmentField,
-                matchRecordId,
-                context.TargetAppId
-              );
-              
-              continue;
-            }
-
-            Log.Information(
-              "Source File {FileId} in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId} was successfully saved as File {TargetFileId} into Target Attachment Field {TargetAttachmentField} for Match Record {MatchRecordId} in Target App {TargetAppId}",
-              fileId,
-              sourceAttachmentFieldId,
-              sourceRecord.RecordId,
-              sourceRecord.AppId,
-              saveFileResponse.Id,
-              targetAttachmentField,
-              matchRecordId,
-              context.TargetAppId
-            );
-          }
-        }
-
-        Log.Information(
-          "Finished processing Source Record {RecordId} in Source App {AppId}", 
-          sourceRecord.RecordId, 
-          sourceRecord.AppId
-        );
       }
 
+      stopWatch.Stop();
+
       Log.Information(
-        "Finished processing Page {CurrentPage} of records for Source App {SourceApp}",
+        "Finished processing Page {CurrentPage} of records for Source App {SourceApp}. ({ExecutionTime} seconds)",
         currentPage,
-        context.SourceAppId
+        context.SourceAppId,
+        Math.Round(stopWatch.Elapsed.TotalSeconds, 0)
       );
       
       pagingRequest.PageNumber++;
-      currentPage = pagingRequest.PageNumber; 
-    } while (currentPage <= totalPages);
-
-    End:
+      currentPage = pagingRequest.PageNumber;
+    } while (currentPage <= totalPages && (pageNumberLimit.HasValue is false || currentPage < pageNumberLimit.Value));
 
     Log.Information("Onspring Attachment Transferrer Finished");
     Log.Information("Find a log of the completed run here: {LogPath}", logPath);
     Log.CloseAndFlush();
-    Console.WriteLine("Press any key to close...");
+    
+    Console.WriteLine("Press any key to exit.");
     Console.ReadLine();
 
     return 0;
