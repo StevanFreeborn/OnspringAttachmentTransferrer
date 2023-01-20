@@ -125,7 +125,7 @@ class Program
       stopWatch.Stop();
 
       Log.Information(
-        "Finished processing Page {CurrentPage} of records for Source App {SourceApp}. ({ExecutionTime} seconds)",
+        "Finished processing Page {CurrentPage} of records for Source App {SourceApp}. (in {ExecutionTime} seconds)",
         currentPage,
         context.SourceAppId,
         Math.Round(stopWatch.Elapsed.TotalSeconds, 0)
