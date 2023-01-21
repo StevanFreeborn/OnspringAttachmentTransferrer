@@ -345,8 +345,8 @@ public class Processor
     var processedListValue = listField
     .Values
     .FirstOrDefault(
-      value => value.Name == _context.ProcessValue || 
-      (Guid.TryParse(_context.ProcessValue, out var result) && value.Id == result)
+      value => value.Name == _context.ProcssedValue || 
+      (Guid.TryParse(_context.ProcssedValue, out var result) && value.Id == result)
     );
 
     if (processListValue is null || processedListValue is null)
