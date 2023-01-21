@@ -92,6 +92,8 @@ class Program
     var totalPages = 1;
     var pagingRequest = new PagingRequest(1, options.PageSize);
     var currentPage = pagingRequest.PageNumber;
+    var maxRetries = 3;
+    var retries = 0;
 
     do
     {
@@ -110,6 +112,7 @@ class Program
         currentPage,
         context.SourceAppId
       );
+        retries++;
         continue;
       }
 
@@ -149,9 +152,11 @@ class Program
       
       pagingRequest.PageNumber++;
       currentPage = pagingRequest.PageNumber;
+      retries = 0;
     } while (
       currentPage <= totalPages && 
-      (options.PageNumberLimit.HasValue is false || currentPage < options.PageNumberLimit.Value)
+      (options.PageNumberLimit.HasValue is false || currentPage < options.PageNumberLimit.Value) &&
+      retries < maxRetries
     );
 
     Log.Information("Onspring Attachment Transferrer Finished");
