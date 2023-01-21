@@ -19,7 +19,7 @@ public class OnspringService
       {
         AppId = context.SourceAppId,
         FieldIds = context.SourceFieldIds,
-        Filter = $"{context.FlagField.Id} contains {context.ProcessValueId}",
+        Filter = $"{context.FlagField.Id} contains '{context.ProcessValueId}'",
       };
 
       var response = await onspringClient.QueryRecordsAsync(request, pagingRequest);
