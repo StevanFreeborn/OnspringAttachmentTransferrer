@@ -17,7 +17,7 @@ public static class LogFactory
   {
     return new LoggerConfiguration()
     .MinimumLevel.Debug()
-    .WriteTo.File(new RenderedCompactJsonFormatter(), logPath)
+    .WriteTo.File(new CompactJsonFormatter(), logPath)
     .WriteTo.Console(
       restrictedToMinimumLevel: logLevel, 
       theme: AnsiConsoleTheme.Code
