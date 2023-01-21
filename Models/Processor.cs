@@ -25,7 +25,7 @@ public class Processor
   public async Task TransferSourceRecordFilesToMatchingTargetRecord(ResultRecord sourceRecord, bool isParallel)
   {
     Log.Information(
-          "Begin processing Source Record {RecordId} in Source App {AppId}.",
+          "Begin processing Source Record {SourceRecordId} in Source App {SourceAppId}.",
           sourceRecord.RecordId,
           sourceRecord.AppId
         );
@@ -35,7 +35,7 @@ public class Processor
     if (matchRecordValue is null)
     {
       Log.Warning(
-        "No identifier value found for Source Record {RecordId} in Source App {AppId}.",
+        "No identifier value found for Source Record {SourceRecordId} in Source App {SourceAppId}.",
         sourceRecord.RecordId,
         sourceRecord.AppId
       );
@@ -76,7 +76,7 @@ public class Processor
     await _onspringService.UpdateSourceRecordAsProcessed(_context, sourceRecord);
 
     Log.Information(
-      "Finished processing Source Record {RecordId} in Source App {AppId}.",
+      "Finished processing Source Record {SourceRecordId} in Source App {SourceAppId}.",
       sourceRecord.RecordId,
       sourceRecord.AppId
     );
@@ -188,7 +188,7 @@ public class Processor
     if (sourceFileInfo is null)
     {
       Log.Warning(
-        "No file info could be found for File {FileId} in Source Attachment Field {SourceAttachmentId} for Source Record {SourceRecordId} in Source App {SourceAppId}.",
+        "No file info could be found for File {SourceFileId} in Source Attachment Field {SourceAttachmentId} for Source Record {SourceRecordId} in Source App {SourceAppId}.",
         fileId,
         sourceAttachmentFieldId,
         sourceRecord.RecordId,
@@ -207,7 +207,7 @@ public class Processor
     if (sourceFile is null)
     {
       Log.Warning(
-        "No file could be found for File {FileId} in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId}.",
+        "No file could be found for File {SourceFileId} in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId}.",
         fileId,
         sourceAttachmentFieldId,
         sourceRecord.RecordId,
@@ -232,7 +232,7 @@ public class Processor
     if (saveFileResponse is null)
     {
       Log.Warning(
-        "Source File {FileId} in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId} could not be saved into Target Attachment Field {TargetAttachmentField} for Match Record {MatchRecordId} in Target App {TargetAppId}.",
+        "Source File {SourceFileId} in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId} could not be saved into Target Attachment Field {TargetAttachmentField} for Match Record {MatchRecordId} in Target App {TargetAppId}.",
         fileId,
         sourceAttachmentFieldId,
         sourceRecord.RecordId,
@@ -245,7 +245,7 @@ public class Processor
     }
 
     Log.Information(
-      "Source File {FileId} in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId} was successfully saved as File {TargetFileId} into Target Attachment Field {TargetAttachmentField} for Match Record {MatchRecordId} in Target App {TargetAppId}.",
+      "Source File {SourceFileId} in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId} was successfully saved as File {TargetFileId} into Target Attachment Field {TargetAttachmentField} for Match Record {MatchRecordId} in Target App {TargetAppId}.",
       fileId,
       sourceAttachmentFieldId,
       sourceRecord.RecordId,

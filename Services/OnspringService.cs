@@ -42,7 +42,7 @@ public class OnspringService
     {
       var message = e.Message;
       Log.Error(
-        "Failed to retrieve records for Source App {AppId}. ({Message})",
+        "Failed to retrieve records for Source App {SourceAppId}. ({Message})",
         context.SourceAppId,
         message
       );
@@ -111,7 +111,7 @@ public class OnspringService
       var matchRecord = response.Value.Items[0];
 
       Log.Debug(
-        "Successfully retrieved match record {MatchRecordId} in App {MatchAppId}.",
+        "Successfully retrieved Match Record {TargetRecordId} in Target App {TargetAppId}.",
         matchRecord.RecordId,
         matchRecord.AppId
       );
@@ -143,7 +143,7 @@ public class OnspringService
       }
 
       Log.Debug(
-        "Successfully retrieved file info for file {FileId} in field {FieldId} for source record {RecordId}.",
+        "Successfully retrieved File Info for File {FileId} in Field {FieldId} for Source Record {SourceRecordId}.",
         fileId,
         fieldId,
         recordId
@@ -154,7 +154,7 @@ public class OnspringService
     {
       var message = e.Message;
       Log.Error(
-        "Failed to retrieve file info for file {FileId} in field {FieldId} for source record {RecordId}. ({Message})",
+        "Failed to retrieve file info for File {FileId} in Field {FieldId} for Source Record {SourceRecordId}. ({Message})",
         fileId,
         fieldId,
         recordId,
@@ -178,7 +178,7 @@ public class OnspringService
       }
 
       Log.Debug(
-        "Successfully retrieved file for file {FileId} in field {FieldId} for source record {RecordId}.",
+        "Successfully retrieved file for File {FileId} in Field {FieldId} for Source Record {SourceRecordId}.",
         fileId,
         fieldId,
         recordId
@@ -189,7 +189,7 @@ public class OnspringService
     {
       var message = e.Message;
       Log.Error(
-        "Failed to retrieve file for file {FileId} in field {FieldId} for source record {RecordId}. ({Message})",
+        "Failed to retrieve file for File {FileId} in Field {FieldId} for Source Record {SourceRecordId}. ({Message})",
         fileId,
         fieldId,
         recordId,
@@ -223,7 +223,7 @@ public class OnspringService
       }
 
       Log.Debug(
-        "Successfully saved file named {FileName} with id {FileId} in field {FieldId} for match record {RecordId}.",
+        "Successfully saved file named {FileName} with id {FileId} in Field {FieldId} for Match Record {TargetRecordId}.",
         fileInfo.Name,
         response.Value.Id,
         fieldId,
@@ -235,7 +235,7 @@ public class OnspringService
     {
       var message = e.Message;
       Log.Error(
-        "Failed to save file named {FileName} in field {FieldId} on match record {RecordId}. ({Message})",
+        "Failed to save file named {FileName} in Field {FieldId} on Match Record {TargetRecordId}. ({Message})",
         fileInfo.Name,
         fieldId,
         recordId,
