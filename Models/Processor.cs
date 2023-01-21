@@ -355,7 +355,7 @@ public class Processor
     }
 
     _context.FlagField = listField;
-    _context.ProcessValueId = processedListValue.Id;
+    _context.ProcessValueId = processListValue.Id;
     _context.ProcessedValueId = processedListValue.Id;
     return true;
   }

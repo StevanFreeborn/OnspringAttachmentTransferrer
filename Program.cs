@@ -116,6 +116,15 @@ class Program
         continue;
       }
 
+      if (sourceRecords.Items.Count == 0)
+      {
+        Log.Warning(
+          "No records retrieved for Page {CurrentPage} of records for Source App {SourceApp}.",
+          currentPage,
+          context.SourceAppId
+        );
+      }
+
       totalPages = sourceRecords.TotalPages;
 
       Log.Information(
