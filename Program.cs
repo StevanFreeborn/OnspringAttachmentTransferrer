@@ -3,6 +3,7 @@ using Onspring.API.SDK.Models;
 using System.CommandLine;
 using Serilog.Events;
 using System.Diagnostics;
+using OnspringAttachmentTransferrer.Models;
 
 class Program
 {
@@ -42,19 +43,28 @@ class Program
     rootCommand.AddOption(pageSizeOption);
     rootCommand.AddOption(pageNumberOption);
     rootCommand.AddOption(parallelOption);
-    rootCommand.SetHandler(async (filePath, logLevel, pageSize, pageNumber, isParallel) => 
+    
+    var optionsBinder = new OptionsBinder(
+      fileOption,
+      logLevelOption,
+      pageSizeOption,
+      pageNumberOption,
+      parallelOption
+    );
+
+    rootCommand.SetHandler(async (options) => 
     {
-      await Run(filePath, logLevel, pageSize, pageNumber, isParallel);
-    }, fileOption, logLevelOption, pageSizeOption, pageNumberOption, parallelOption);
+      await Run(options);
+    }, optionsBinder);
 
     return await rootCommand.InvokeAsync(args);
   }
 
-  static async Task<int> Run(string filePath, LogEventLevel logLevel, int pageSize, int? pageNumberLimit, bool isParallel)
+  static async Task<int> Run(Options options)
   {
     var logPath = LogFactory.GetLogPath();
-    Log.Logger = LogFactory.CreateLogger(logPath, logLevel);
-    var context = Processor.GetContextFromFileOrUser(filePath);
+    Log.Logger = LogFactory.CreateLogger(logPath, options.LogLevel);
+    var context = Processor.GetContextFromFileOrUser(options.ConfigFile);
 
     if (context is null)
     {
@@ -66,15 +76,21 @@ class Program
 
     if (await processor.ValidateMatchFields() is false)
     {
-      Log.Fatal("Invalid match fields.");
+      Log.Fatal("Invalid match fields. Match fields should be of type text, date, number, auto number, or a formula with a non list output type.");
       return 2;
+    }
+
+    if (await processor.ValidateFlagFieldIdAndValues() is false)
+    {
+      Log.Fatal("Invalid flag field and/or values. The flag field should be a single select list field and should contain both your process and processed values.");
+      return 3;
     }
     
     Log.Information("Onspring Attachment Transferrer Started");
 
     var stopWatch = new Stopwatch();
     var totalPages = 1;
-    var pagingRequest = new PagingRequest(1, pageSize);
+    var pagingRequest = new PagingRequest(1, options.PageSize);
     var currentPage = pagingRequest.PageNumber;
 
     do
@@ -85,7 +101,7 @@ class Program
         context.SourceAppId
       );
 
-      var sourceRecords = await processor.GetAPageOfRecords(pagingRequest);
+      var sourceRecords = await processor.GetAPageOfRecordsToBeProcessed(pagingRequest);
 
       if (sourceRecords is null)
       {
@@ -107,18 +123,18 @@ class Program
 
       stopWatch.Start();
 
-      if (isParallel is true)
+      if (options.ProcessInParallel is true)
       {
         await Parallel.ForEachAsync(sourceRecords.Items, async (sourceRecord, token) => 
         {
-          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord, isParallel);
+          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord, options.ProcessInParallel);
         });
       }
       else
       {
         foreach (var sourceRecord in sourceRecords.Items)
         {
-          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord, isParallel);
+          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord, options.ProcessInParallel);
         }
       }
 
@@ -133,7 +149,10 @@ class Program
       
       pagingRequest.PageNumber++;
       currentPage = pagingRequest.PageNumber;
-    } while (currentPage <= totalPages && (pageNumberLimit.HasValue is false || currentPage < pageNumberLimit.Value));
+    } while (
+      currentPage <= totalPages && 
+      (options.PageNumberLimit.HasValue is false || currentPage < options.PageNumberLimit.Value)
+    );
 
     Log.Information("Onspring Attachment Transferrer Finished");
     Log.Information("Find a log of the completed run here: {LogPath}", logPath);

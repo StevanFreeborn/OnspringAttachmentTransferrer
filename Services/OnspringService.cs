@@ -1,5 +1,6 @@
 using Onspring.API.SDK;
 using Onspring.API.SDK.Models;
+using OnspringAttachmentTransferrer.Models;
 using Serilog;
 
 namespace OnspringAttachmentTransferrer.Services;
@@ -8,19 +9,20 @@ public class OnspringService
 {
   private readonly string baseUrl = "https://api.onspring.com/";
 
-  public async Task<GetPagedRecordsResponse> GetAPageOfRecords(string apiKey, int appId, List<int> fieldIds, PagingRequest pagingRequest)
+  public async Task<GetPagedRecordsResponse> GetAPageOfRecordsToBeProcessed(Context context, PagingRequest pagingRequest)
   {
     try
     {
-      var onspringClient = new OnspringClient(baseUrl, apiKey);
-      var request = new GetRecordsByAppRequest
+      var onspringClient = new OnspringClient(baseUrl, context.SourceInstanceKey);
+      
+      var request = new QueryRecordsRequest
       {
-        AppId = appId,
-        FieldIds = fieldIds,
-        PagingRequest = pagingRequest,
+        AppId = context.SourceAppId,
+        FieldIds = context.SourceFieldIds,
+        Filter = $"{context.FlagField.Id} contains {context.ProcessValueId}",
       };
 
-      var response = await onspringClient.GetRecordsForAppAsync(request);
+      var response = await onspringClient.QueryRecordsAsync(request, pagingRequest);
 
       if (response.IsSuccessful is false)
       {
@@ -28,9 +30,9 @@ public class OnspringService
       }
 
       Log.Debug(
-        "Successfully retrieved {CountOfRecords} record(s) for App {AppId}. (page {PageNumber} of {TotalPages})",
+        "Successfully retrieved {CountOfRecords} record(s) for Source App {SourceAppId}. (page {PageNumber} of {TotalPages})",
         response.Value.Items.Count,
-        appId,
+        context.SourceAppId,
         response.Value.PageNumber,
         response.Value.TotalPages
       );
@@ -40,8 +42,8 @@ public class OnspringService
     {
       var message = e.Message;
       Log.Error(
-        "Failed to retrieve records for App {AppId}. ({Message})",
-        appId,
+        "Failed to retrieve records for Source App {AppId}. ({Message})",
+        context.SourceAppId,
         message
       );
     }
@@ -81,17 +83,17 @@ public class OnspringService
     return null;
   }
 
-  public async Task<int?> GetMatchRecordId(string apiKey, int appId, int fieldId, string filterValue)
+  public async Task<int?> GetMatchRecordId(Context context, string filterValue)
   {
     try
     {
 
-      var onspringClient = new OnspringClient(baseUrl, apiKey);
+      var onspringClient = new OnspringClient(baseUrl, context.TargetInstanceKey);
       var request = new QueryRecordsRequest
       {
-        AppId = appId,
-        FieldIds = new List<int> { fieldId },
-        Filter = $"{fieldId} eq '{filterValue}'",
+        AppId = context.TargetAppId,
+        FieldIds = new List<int> { context.TargetMatchFieldId },
+        Filter = $"{context.TargetMatchFieldId} eq '{filterValue}'",
       };
 
       var response = await onspringClient.QueryRecordsAsync(request);
@@ -119,8 +121,8 @@ public class OnspringService
     {
       var message = e.Message;
       Log.Error(
-        "Failed to retrieve records to match against from App {AppId}. ({Message})",
-        appId,
+        "Failed to retrieve records to match against from Target App {TargetAppId}. ({Message})",
+        context.TargetAppId,
         message
       );
     }
@@ -242,5 +244,33 @@ public class OnspringService
     }
 
     return null;
+  }
+
+  public async Task<SaveRecordResponse> UpdateSourceRecordAsProcessed(Context context, ResultRecord sourceRecord)
+  {
+    var onspringClient = new OnspringClient(baseUrl, context.SourceInstanceKey);
+
+    var request = new ResultRecord
+    {
+      AppId = context.SourceAppId,
+      RecordId = sourceRecord.RecordId,
+    };
+
+    var flagFieldValue = new GuidFieldValue(context.FlagField.Id, context.ProcessedValueId);
+    request.FieldData.Add(flagFieldValue);
+
+    var response = await onspringClient.SaveRecordAsync(request);
+
+    if (response.IsSuccessful is false)
+    {
+      throw new ApplicationException($"Status Code: {response.StatusCode} - {response.Message}");
+    }
+
+    Log.Debug(
+      "Successfully updated Source Record {SourceRecordId} in Source App {SourceAppId} as having been processed.",
+      sourceRecord.RecordId,
+      context.SourceAppId
+    );
+    return response.Value;
   }
 }

@@ -17,14 +17,9 @@ public class Processor
     _onspringService = new OnspringService();
   }
 
-  public async Task<GetPagedRecordsResponse> GetAPageOfRecords(PagingRequest pagingRequest)
+  public async Task<GetPagedRecordsResponse> GetAPageOfRecordsToBeProcessed(PagingRequest pagingRequest)
   {
-    return await _onspringService.GetAPageOfRecords(
-      _context.SourceInstanceKey,
-      _context.SourceAppId,
-      _context.SourceFieldIds,
-      pagingRequest
-    );
+    return await _onspringService.GetAPageOfRecordsToBeProcessed(_context, pagingRequest);
   }
 
   public async Task TransferSourceRecordFilesToMatchingTargetRecord(ResultRecord sourceRecord, bool isParallel)
@@ -49,12 +44,7 @@ public class Processor
 
     var matchValueString = GetMatchValueAsString(matchRecordValue);
 
-    var matchRecordId = await _onspringService.GetMatchRecordId(
-      _context.TargetInstanceKey,
-      _context.TargetAppId,
-      _context.TargetMatchFieldId,
-      matchValueString
-    );
+    var matchRecordId = await _onspringService.GetMatchRecordId(_context, matchValueString);
 
     if (matchRecordId.HasValue is false)
     {
@@ -82,6 +72,8 @@ public class Processor
         await ProcessSourceAttachmentFieldId(sourceRecord, sourceAttachmentFieldId, matchRecordId, isParallel);
       }
     }
+
+    await _onspringService.UpdateSourceRecordAsProcessed(_context, sourceRecord);
 
     Log.Information(
       "Finished processing Source Record {RecordId} in Source App {AppId}.",
@@ -133,6 +125,9 @@ public class Processor
     var sourceMatchField = Prompt.GetSourceMatchFieldId();
     var targetMatchField = Prompt.GetTargetMatchFieldId();
     var attachmentFieldMappings = Prompt.GetAttachmentFieldMappings();
+    var flagFieldId = Prompt.GetFlagFieldId();
+    var processValue = Prompt.GetProcessValue();
+    var processedValue = Prompt.GetProcessedValue();
 
     return new Context(
       sourceInstanceKey,
@@ -141,7 +136,10 @@ public class Processor
       targetAppId,
       sourceMatchField,
       targetMatchField,
-      attachmentFieldMappings
+      attachmentFieldMappings,
+      flagFieldId,
+      processValue,
+      processedValue
     );
   }
 
@@ -319,5 +317,46 @@ public class Processor
     return record
     .FieldData
     .FirstOrDefault(fd => fd.FieldId == fieldId);
+  }
+
+  public async Task<bool> ValidateFlagFieldIdAndValues()
+  {
+    var flagField = await _onspringService.GetField(_context.SourceInstanceKey, _context.FlagFieldId);
+
+    if (flagField is null || flagField.Type is not FieldType.List)
+    {
+      return false;
+    }
+
+    var listField = flagField as ListField;
+
+    if (listField.Multiplicity is Multiplicity.MultiSelect)
+    {
+      return false;
+    }
+
+    var processListValue = listField
+    .Values
+    .FirstOrDefault(
+      value => value.Name == _context.ProcessValue || 
+      (Guid.TryParse(_context.ProcessValue, out var result) && value.Id == result)
+    );
+
+    var processedListValue = listField
+    .Values
+    .FirstOrDefault(
+      value => value.Name == _context.ProcessValue || 
+      (Guid.TryParse(_context.ProcessValue, out var result) && value.Id == result)
+    );
+
+    if (processListValue is null || processedListValue is null)
+    {
+      return false;
+    }
+
+    _context.FlagField = listField;
+    _context.ProcessValueId = processedListValue.Id;
+    _context.ProcessedValueId = processedListValue.Id;
+    return true;
   }
 }

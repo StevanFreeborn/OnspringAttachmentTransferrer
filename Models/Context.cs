@@ -7,7 +7,18 @@ namespace OnspringAttachmentTransferrer.Models;
 
 public class Context
 {
-  public Context(string sourceInstanceKey, string targetInstanceKey, int sourceAppId, int targetAppId, int sourceMatchField, int targetMatchField, Dictionary<int, int> attachmentFieldMappings)
+  public Context(
+    string sourceInstanceKey, 
+    string targetInstanceKey, 
+    int sourceAppId, 
+    int targetAppId, 
+    int sourceMatchField, 
+    int targetMatchField, 
+    Dictionary<int, int> attachmentFieldMappings,
+    int flagFieldId,
+    string processValue,
+    string processedValue
+  )
   {
     SourceInstanceKey = sourceInstanceKey;
     TargetInstanceKey = targetInstanceKey;
@@ -16,15 +27,24 @@ public class Context
     SourceMatchFieldId = sourceMatchField;
     TargetMatchFieldId = targetMatchField;
     AttachmentFieldMappings = attachmentFieldMappings;
+    FlagFieldId = flagFieldId;
+    ProcessValue = processValue;
+    ProcssedValue = processedValue;
   }
 
-  public string SourceInstanceKey { get; set; }
-  public string TargetInstanceKey { get; set; }
-  public int SourceAppId { get; set; }
-  public int TargetAppId { get; set; }
-  public int SourceMatchFieldId { get; set; }
-  public int TargetMatchFieldId { get; set; }
-  public Dictionary<int,int> AttachmentFieldMappings { get; set; }
+  public string SourceInstanceKey { get; private set; }
+  public string TargetInstanceKey { get; private set; }
+  public int SourceAppId { get; private set; }
+  public int TargetAppId { get; private set; }
+  public int SourceMatchFieldId { get; private set; }
+  public int TargetMatchFieldId { get; private set; }
+  public Dictionary<int,int> AttachmentFieldMappings { get; private set; }
+  public int FlagFieldId { get; private set; }
+  public ListField FlagField { get; set; }
+  public string ProcessValue { get; private set; }
+  public Guid ProcessValueId { get; set; }
+  public string ProcssedValue { get; private set; }
+  public Guid ProcessedValueId { get; set; }
   public List<int> SourceAttachmentFieldIds => GetSourceAttachmentFields();
   public List<int> SourceFieldIds => GetSourceFieldIds();
   public List<int> TargetFieldIds => GetTargetFieldIds();
@@ -80,15 +100,21 @@ public class Context
     var sourceMatchField = configuration.GetSection("SourceMatchField").Value;
     var targetMatchField = configuration.GetSection("TargetMatchField").Value;
     var attachmentFieldMappings = configuration.GetSection("AttachmentFieldMappings").Value;
+    var flagFieldId = configuration.GetSection("FlagFieldId").Value;
+    var processValue = configuration.GetSection("ProcessValue").Value;
+    var processedValue = configuration.GetSection("ProcessedValue").Value;
 
     if (
-      IsValidKey(sourceInstanceKey) is false ||
-      IsValidKey(targetInstanceKey) is false ||
+      IsNotNullOrWhiteSpace(sourceInstanceKey) is false ||
+      IsNotNullOrWhiteSpace(targetInstanceKey) is false ||
       IsValidId(sourceAppId, out var parsedSourceAppId) is false ||
       IsValidId(targetAppId, out var parsedTargetAppId) is false ||
       IsValidId(sourceMatchField, out var parsedSourceMatchFieldId) is false ||
       IsValidId(targetMatchField, out var parsedTargetMatchFieldId) is false ||
-      TryParseMappings(attachmentFieldMappings, out var fieldMappings) is false
+      TryParseMappings(attachmentFieldMappings, out var fieldMappings) is false ||
+      IsValidId(flagFieldId, out var parsedFlagFieldId) is false ||
+      IsNotNullOrWhiteSpace(processValue) is false ||
+      IsNotNullOrWhiteSpace(processedValue) is false
     )
     {
       context = null;
@@ -102,14 +128,17 @@ public class Context
       parsedTargetAppId, 
       parsedSourceMatchFieldId, 
       parsedTargetMatchFieldId, 
-      fieldMappings
+      fieldMappings,
+      parsedFlagFieldId,
+      processValue,
+      processValue
     );
     return true;
   }
 
-  public static Boolean IsValidKey(string key)
+  public static Boolean IsNotNullOrWhiteSpace(string value)
   {
-    return String.IsNullOrWhiteSpace(key) is false;
+    return String.IsNullOrWhiteSpace(value) is false;
   }
 
   public static Boolean IsValidId(string id, out int parsedId)

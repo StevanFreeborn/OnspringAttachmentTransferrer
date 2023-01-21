@@ -6,108 +6,32 @@ public static class Prompt
 {
   public static string GetSourceApiKey()
   {
-    string apiKey = null;
-
-    while (Context.IsValidKey(apiKey) is false)
-    {
-      Console.WriteLine("Please enter an api key for your source instance:");
-      apiKey = Console.ReadLine();
-    }
-
-    return apiKey;
+    return AskForValue("Please enter an api key for your source instance:");
   }
 
   public static string GetTargetApiKey()
   {
-    string apiKey = null;
-
-    while (Context.IsValidKey(apiKey) is false)
-    {
-      Console.WriteLine("Please enter an api key for your target instance:");
-      apiKey = Console.ReadLine();
-    }
-
-    return apiKey;
+    return AskForValue("Please enter an api key for your target instance:");
   }
 
   public static int GetSourceAppId()
   {
-    var appId = 0;
-
-    while (appId <= 0)
-    {
-      Console.WriteLine("Please enter the id for your source app:");
-      var appIdInput = Console.ReadLine();
-
-      if (Context.IsValidId(appIdInput, out int parsedId) is false)
-      {
-        continue;
-      }
-
-      appId = parsedId;
-    }
-
-    return appId;
+    return AskForId("Please enter the id for your source app:");
   }
 
   public static int GetTargetAppId()
   {
-    var appId = 0;
-
-    while (appId <= 0)
-    {
-      Console.WriteLine("Please enter the id for your target app:");
-      var appIdInput = Console.ReadLine();
-
-      if (Context.IsValidId(appIdInput, out int parsedId) is false)
-      {
-        continue;
-      }
-
-      appId = parsedId;
-    }
-
-    return appId;
+    return AskForId("Please enter the id for your target app:");
   }
 
   public static int GetSourceMatchFieldId()
   {
-    var fieldId = 0;
-
-    while (fieldId <= 0)
-    {
-      Console.WriteLine("Please enter the id for the field in the source whose value you want to match records on:");
-      var fieldIdInput = Console.ReadLine();
-
-      if (Context.IsValidId(fieldIdInput, out int parsedId) is false)
-      {
-        continue;
-      }
-
-      fieldId = parsedId;
-    }
-
-    return fieldId;
+    return AskForId("Please enter the id for the field in the source whose value you want to match records on:");
   }
 
   public static int GetTargetMatchFieldId()
   {
-    var fieldId = 0;
-
-    while (fieldId <= 0)
-    {
-      Console.WriteLine("Please enter the id for the field in the target whose value you want to match records on:");
-      var fieldIdInput = Console.ReadLine();
-
-      if (Context.IsValidId(fieldIdInput, out int parsedId) is false)
-      {
-        continue;
-      }
-
-      fieldId = parsedId;
-    }
-
-    return fieldId;
+    return AskForId("Please enter the id for the field in the target whose value you want to match records on:");
   }
 
   public static Dictionary<int, int> GetAttachmentFieldMappings()
@@ -126,5 +50,53 @@ public static class Prompt
     }
 
     return fieldMappings;
+  }
+
+  public static int GetFlagFieldId()
+  {
+    return AskForId("Please enter the id for the field in the source whose value you want to use to determine which records to process:");
+  }
+
+  public static string GetProcessValue()
+  {
+    return AskForValue("Please enter the value that your source records should have in their flag field to be processed:");
+  }
+
+  public static string GetProcessedValue()
+  {
+    return AskForValue("Please enter the value that your source records should be updated with to indicate they have been processed:");
+  }
+
+  private static int AskForId(string message)
+  {
+    var id = 0;
+
+    while (id <= 0)
+    {
+      Console.WriteLine(message);
+      var idInput = Console.ReadLine();
+
+      if (Context.IsValidId(idInput, out int parsedId) is false)
+      {
+        continue;
+      }
+
+      id = parsedId;
+    }
+
+    return id;
+  }
+
+  private static string AskForValue(string message)
+  {
+    string value = null;
+
+    while (Context.IsNotNullOrWhiteSpace(value) is false)
+    {
+      Console.WriteLine(message);
+      value = Console.ReadLine();
+    }
+
+    return value;
   }
 }

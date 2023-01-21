@@ -5,5 +5,8 @@
   "TargetAppId": "222",
   "SourceMatchField": "111",
   "TargetMatchField": "111",
-  "AttachmentFieldMappings": "1234|5678,1234|5678"
+  "AttachmentFieldMappings": "1234|5678,1234|5678",
+  "FlagField": "1234",
+  "ProcessValue": "Needs Processing",
+  "ProcessedValue": "Processed"
 }
