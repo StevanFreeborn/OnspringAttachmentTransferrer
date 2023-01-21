@@ -145,6 +145,7 @@ public class Context
   {
     if (String.IsNullOrWhiteSpace(id) is true)
     {
+      Log.Error("Id cannot be null or whitespace.");
       parsedId = 0;
       return false;
     }
@@ -166,6 +167,7 @@ public class Context
 
     if (AreValidFieldMappings(mappings) is false)
     {
+      Log.Error("{Mappings} contains an invalid field mapping.", mappings);
       return false;
     }
 
@@ -204,7 +206,6 @@ public class Context
 
       if (fieldPair.Count != 2)
       {
-        Log.Error("{FieldMapping} is an invalid field mapping.", fieldMapping);
         return false;
       }
 
@@ -212,7 +213,6 @@ public class Context
       {
         if (int.TryParse(fieldId, out var result) is false)
         {
-          Log.Error("{FieldMapping} is an invalid field mapping.", fieldMapping);
           return false;
         }
       }
