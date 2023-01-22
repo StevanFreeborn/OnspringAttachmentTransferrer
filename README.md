@@ -115,7 +115,7 @@ The tool currently has a number of options that can be passed as command line ar
   + By default this will be set to the `Information` level.
   + The valid levels are: `Debug` | `Error` | `Fatal` | `Information` | `Verbose` | `Warning`
   + **Example usage:** `OnspringAttachmentTransferrer.exe -l Debug`
-+ **Page Size:** `--pageSize` or `ps`
++ **Page Size:** `--pageSize` or `-ps`
   + Allows you to specify the size of each page of records retrieved.
   + By default the tool will attempt to request a page size of 50 records.
   + **Example usage:** `OnspringAttachmentTransferrer.exe -ps 1`
