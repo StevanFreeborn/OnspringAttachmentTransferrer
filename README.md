@@ -31,7 +31,7 @@ Therefore at least three API requests must be made for each attachment you want 
 
 Expressed as an equation the number of api requests would be something like this:
 
-```math
+```text
 3 + (2⌈(totalRecords/pageSize)⌉) + (⌈(totalRecords/pageSize)⌉ * numberOfRecordsRetrieved) + 3((⌈(totalRecords/pageSize)⌉) * numberOfRecordsRetrieved * numberOfFieldsPerRecord * numberOfFilesPerField)
 ```
 
