@@ -164,7 +164,7 @@ class Program
       retries = 0;
     } while (
       currentPage <= totalPages && 
-      (options.PageNumberLimit.HasValue is false || currentPage < options.PageNumberLimit.Value) &&
+      (options.PageNumberLimit.HasValue is false || currentPage <= options.PageNumberLimit.Value) &&
       retries < maxRetries
     );
 
