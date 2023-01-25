@@ -248,29 +248,43 @@ public class OnspringService
 
   public async Task<SaveRecordResponse> UpdateSourceRecordAsProcessed(Context context, ResultRecord sourceRecord)
   {
-    var onspringClient = new OnspringClient(baseUrl, context.SourceInstanceKey);
-
-    var request = new ResultRecord
+    try
     {
-      AppId = context.SourceAppId,
-      RecordId = sourceRecord.RecordId,
-    };
+      var onspringClient = new OnspringClient(baseUrl, context.SourceInstanceKey);
 
-    var flagFieldValue = new GuidFieldValue(context.FlagField.Id, context.ProcessedValueId);
-    request.FieldData.Add(flagFieldValue);
+      var request = new ResultRecord
+      {
+        AppId = context.SourceAppId,
+        RecordId = sourceRecord.RecordId,
+      };
 
-    var response = await onspringClient.SaveRecordAsync(request);
+      var flagFieldValue = new GuidFieldValue(context.FlagField.Id, context.ProcessedValueId);
+      request.FieldData.Add(flagFieldValue);
 
-    if (response.IsSuccessful is false)
+      var response = await onspringClient.SaveRecordAsync(request);
+
+      if (response.IsSuccessful is false)
+      {
+        throw new ApplicationException($"Status Code: {response.StatusCode} - {response.Message}");
+      }
+
+      Log.Debug(
+        "Successfully updated Source Record {SourceRecordId} in Source App {SourceAppId} as having been processed.",
+        sourceRecord.RecordId,
+        context.SourceAppId
+      );
+      return response.Value;
+    }
+    catch (Exception e)
     {
-      throw new ApplicationException($"Status Code: {response.StatusCode} - {response.Message}");
+      var message = e.Message;
+      Log.Warning(
+        "Failed to update Source Record {SourceRecordId} in Source App {SourceAppId} as processed. ({Message})",
+        sourceRecord.RecordId,
+        sourceRecord.AppId
+      );
     }
 
-    Log.Debug(
-      "Successfully updated Source Record {SourceRecordId} in Source App {SourceAppId} as having been processed.",
-      sourceRecord.RecordId,
-      context.SourceAppId
-    );
-    return response.Value;
+    return null;
   }
 }

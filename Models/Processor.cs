@@ -73,7 +73,16 @@ public class Processor
       }
     }
 
-    await _onspringService.UpdateSourceRecordAsProcessed(_context, sourceRecord);
+    var updateResponse = await _onspringService.UpdateSourceRecordAsProcessed(_context, sourceRecord);
+
+    if (updateResponse is null)
+    {
+      Log.Warning(
+        "Failed to update Source Record {SourceRecordId} in Source App {SourceAppId} as processed.",
+        sourceRecord.RecordId,
+        sourceRecord.AppId
+      );
+    }
 
     Log.Information(
       "Finished processing Source Record {SourceRecordId} in Source App {SourceAppId}.",
