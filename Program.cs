@@ -89,7 +89,7 @@ class Program
     Log.Information("Onspring Attachment Transferrer Started");
 
     var stopWatch = new Stopwatch();
-    var totalPages = 1;
+    var totalPages = 2;
     var pagingRequest = new PagingRequest(1, options.PageSize);
     var currentPage = pagingRequest.PageNumber;
     var maxRetries = 3;
@@ -116,6 +116,8 @@ class Program
         continue;
       }
 
+      totalPages = sourceRecords.TotalPages;
+
       if (sourceRecords.Items.Count == 0)
       {
         Log.Warning(
@@ -123,9 +125,8 @@ class Program
           currentPage,
           context.SourceAppId
         );
+        continue;
       }
-
-      totalPages = sourceRecords.TotalPages;
 
       Log.Information(
         "Begin processing Page {CurrentPage} of records for Source App {SourceApp}.",
@@ -139,14 +140,14 @@ class Program
       {
         await Parallel.ForEachAsync(sourceRecords.Items, async (sourceRecord, token) => 
         {
-          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord, options.ProcessInParallel);
+          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord);
         });
       }
       else
       {
         foreach (var sourceRecord in sourceRecords.Items)
         {
-          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord, options.ProcessInParallel);
+          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord);
         }
       }
 
@@ -159,11 +160,11 @@ class Program
         Math.Round(stopWatch.Elapsed.TotalSeconds, 0)
       );
       
-      pagingRequest.PageNumber++;
-      currentPage = pagingRequest.PageNumber;
+      
+      currentPage++;
       retries = 0;
     } while (
-      currentPage <= totalPages && 
+      totalPages > 1 && 
       (options.PageNumberLimit.HasValue is false || currentPage <= options.PageNumberLimit.Value) &&
       retries < maxRetries
     );
