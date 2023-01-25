@@ -22,7 +22,7 @@ public class Processor
     return await _onspringService.GetAPageOfRecordsToBeProcessed(_context, pagingRequest);
   }
 
-  public async Task TransferSourceRecordFilesToMatchingTargetRecord(ResultRecord sourceRecord, bool isParallel)
+  public async Task TransferSourceRecordFilesToMatchingTargetRecord(ResultRecord sourceRecord)
   {
     Log.Information(
           "Begin processing Source Record {SourceRecordId} in Source App {SourceAppId}.",
@@ -58,19 +58,9 @@ public class Processor
       return;
     }
 
-    if (isParallel is true)
+    foreach (var sourceAttachmentFieldId in _context.SourceAttachmentFieldIds)
     {
-      await Parallel.ForEachAsync(_context.SourceAttachmentFieldIds, async (sourceAttachmentFieldId, token) =>
-      {
-        await ProcessSourceAttachmentFieldId(sourceRecord, sourceAttachmentFieldId, matchRecordId, isParallel);
-      });
-    }
-    else
-    {
-      foreach (var sourceAttachmentFieldId in _context.SourceAttachmentFieldIds)
-      {
-        await ProcessSourceAttachmentFieldId(sourceRecord, sourceAttachmentFieldId, matchRecordId, isParallel);
-      }
+      await ProcessSourceAttachmentFieldId(sourceRecord, sourceAttachmentFieldId, matchRecordId);
     }
 
     var updateResponse = await _onspringService.UpdateSourceRecordAsProcessed(_context, sourceRecord);
@@ -152,37 +142,27 @@ public class Processor
     );
   }
 
-  private async Task ProcessSourceAttachmentFieldId(ResultRecord sourceRecord, int sourceAttachmentFieldId, int? matchRecordId, bool isParallel)
+  private async Task ProcessSourceAttachmentFieldId(ResultRecord sourceRecord, int sourceAttachmentFieldId, int? matchRecordId)
   {
     var attachmentFieldData = GetRecordFieldValue(sourceRecord, sourceAttachmentFieldId);
 
-      if (attachmentFieldData is null)
-      {
-        Log.Warning(
-          "No field data found in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId}.",
-          sourceAttachmentFieldId,
-          sourceRecord.RecordId,
-          sourceRecord.AppId
-        );
-        return;
-      }
+    if (attachmentFieldData is null)
+    {
+      Log.Warning(
+        "No field data found in Source Attachment Field {SourceAttachmentFieldId} for Source Record {SourceRecordId} in Source App {SourceAppId}.",
+        sourceAttachmentFieldId,
+        sourceRecord.RecordId,
+        sourceRecord.AppId
+      );
+      return;
+    }
 
-      var fileIds = GetFileIdsForInternalFilesFromAttachmentFieldData(attachmentFieldData);
+    var fileIds = GetFileIdsForInternalFilesFromAttachmentFieldData(attachmentFieldData);
 
-      if (isParallel is true)
-      {
-        await Parallel.ForEachAsync(fileIds, async (fileId, toke) =>
-        {
-          await ProcessSourceFileId(sourceRecord, sourceAttachmentFieldId, matchRecordId, fileId);
-        });
-      }
-      else
-      {
-        foreach (var fileId in fileIds)
-        {
-          await ProcessSourceFileId(sourceRecord, sourceAttachmentFieldId, matchRecordId, fileId);
-        }
-      }
+    foreach (var fileId in fileIds)
+    {
+      await ProcessSourceFileId(sourceRecord, sourceAttachmentFieldId, matchRecordId, fileId);
+    }
   }
 
   private async Task ProcessSourceFileId(ResultRecord sourceRecord, int sourceAttachmentFieldId, int? matchRecordId, int fileId)

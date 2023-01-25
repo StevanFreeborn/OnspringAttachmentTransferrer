@@ -140,14 +140,14 @@ class Program
       {
         await Parallel.ForEachAsync(sourceRecords.Items, async (sourceRecord, token) => 
         {
-          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord, options.ProcessInParallel);
+          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord);
         });
       }
       else
       {
         foreach (var sourceRecord in sourceRecords.Items)
         {
-          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord, options.ProcessInParallel);
+          await processor.TransferSourceRecordFilesToMatchingTargetRecord(sourceRecord);
         }
       }
 
